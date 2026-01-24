@@ -1,17 +1,62 @@
+#![warn(missing_docs)]
+
+//! Simple low level actor library for creating and implementing actors.
+//! Requires the tokio::async runtime
+//!
+//! [`Actor Model`]: https://grokipedia.com/page/Actor_model
+//!
+//! Example
+//! ```rust
+//! // Define our message
+//! pub enum Message {
+//!     Hello,
+//!     SecretMsg(&'static str),
+//! }
+//!
+//! pub struct MyActor;
+//!
+//! // Implement Actor trait
+//! impl Actor for MyActor {
+//!     type Msg = Message;
+//!
+//!     // Just print the message for this example
+//!     fn recv(&mut self, msg: Self::Msg) {
+//!         match msg {
+//!             Message::Hello => println!("Hello World from Actor!"),
+//!             Message::SecretMsg(s) => println!("Secret: {}", s),
+//!         }
+//!     }
+//! }
+//!
+//! #[tokio::main]
+//! async fn main() {
+//!     // Create a handle
+//!     let h1 = Handle::new(MyActor);
+//!
+//!     // Send messages to the actor
+//!     h1.send(Message::Hello);
+//!     h1.send(Message::SecretMsg("foo"));
+//! }
+//! ```
+
 use tokio::sync::mpsc;
 
-/// Actor
-pub trait Actor: std::marker::Send {
-    /// The type of message that the Actor can accept
+/// Actor trait implements the message type and receiver function
+pub trait Actor: Send {
+    /// The user defined type of message that the Actor can accept
     type Msg;
+
+    /// recv is called on the [`Actor`] every time a message is received.
     fn recv(&mut self, msg: Self::Msg);
 }
 
-/// Handle holds the lifetime of the Actor.
+/// Handle provides an interface for sending messages to the [`Actor`].
+/// The [`Handle`] can be cloned and passed around.
+/// The handle holds the lifetime of the [`Actor`] and when the _last_ handle is dropped the Actor will stop.
 pub struct Handle<M>(mpsc::UnboundedSender<M>);
 
 impl<M> Handle<M> {
-    /// `new` takes an Actor and returns a handle linked to that Actor
+    /// Generates an [`Actor`] and returns a [`Handle`] for that [`Actor`].
     pub fn new<T: Actor + 'static>(actor: T) -> Handle<M>
     where
         <T as Actor>::Msg: Send,
@@ -22,7 +67,7 @@ impl<M> Handle<M> {
         Handle(sender)
     }
 
-    /// `send` is used
+    /// Send a message to the [`Actor`].
     pub fn send(&self, msg: M) {
         let _ = self.0.send(msg);
     }
@@ -54,7 +99,7 @@ mod tests {
         type Msg = Message;
         fn recv(&mut self, msg: Self::Msg) {
             match msg {
-                Message::Test => println!("Recieved message")
+                Message::Test => println!("Recieved message"),
             }
         }
     }
