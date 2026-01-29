@@ -7,6 +7,8 @@
 //!
 //! Example
 //! ```rust
+//! use miniactor::{Actor, Handle};
+//!
 //! // Define our message
 //! pub enum Message {
 //!     Hello,
@@ -15,7 +17,7 @@
 //!
 //! pub struct MyActor;
 //!
-//! // Implement Actor trait
+//! // Implement the Actor trait
 //! impl Actor for MyActor {
 //!     type Msg = Message;
 //!
